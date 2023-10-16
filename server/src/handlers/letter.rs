@@ -1,16 +1,20 @@
 use axum::{extract, http};
 use sqlx::SqlitePool;
 
-use crate::dao::{
-    letter::{CreateLetter, Letter, LetterDao},
-    sending_info::{SendingInfo, SendingInfoCreate, SendingInfoDao},
+use crate::{
+    dao::{
+        letter::{CreateLetter, Letter, LetterDao},
+        sending_info::{SendingInfo, SendingInfoCreate, SendingInfoDao},
+    },
+    middleware::CurrentUser,
 };
 
 pub async fn create_letter(
+    extract::Extension(current_user): extract::Extension<CurrentUser>,
     extract::State(pool): extract::State<SqlitePool>,
     axum::Json(payload): axum::Json<CreateLetter>,
 ) -> Result<(http::StatusCode, axum::Json<Letter>), http::StatusCode> {
-    let res = LetterDao::create(payload, &pool).await;
+    let res = LetterDao::create(current_user.id, payload, &pool).await;
 
     match res {
         Ok(letter) => Ok((http::StatusCode::CREATED, axum::Json(letter))),
@@ -50,33 +54,52 @@ pub async fn delete_letter(
     extract::State(pool): extract::State<SqlitePool>,
     extract::Path(id): extract::Path<uuid::Uuid>,
 ) -> Result<http::StatusCode, http::StatusCode> {
-    let delete_letter_res = LetterDao::delete(id, &pool).await;
+    if let Ok(letter) = LetterDao::get_by_id(id, &pool).await {
+        if let Ok(transaction) = pool.begin().await {
+            let delete_letter_res = LetterDao::delete(id, &pool).await;
+            return match delete_letter_res {
+                Ok(_) => {
+                    if letter.sending_info_id == None {
+                        return transaction.commit().await.map_or_else(
+                            |error| {
+                                println!("delete_letter: Transaction failed {:?}", error);
+                                Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+                            },
+                            |_| Ok(http::StatusCode::OK),
+                        );
+                    }
 
-    match delete_letter_res {
-        Ok(_) => {
-            let delete_sending_info_res = sqlx::query(
-                r#"
-                DELETE FROM sending_info
-                WHERE letter_id = $1
-                "#,
-            )
-            .bind(id)
-            .execute(&pool)
-            .await;
+                    let delete_sending_info_res =
+                        SendingInfoDao::delete(letter.sending_info_id.unwrap(), &pool).await;
 
-            match delete_sending_info_res {
-                Ok(_) => Ok(http::StatusCode::OK),
-                Err(error) => {
-                    println!("delete_letter: {:?}", error);
-                    Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+                    match delete_sending_info_res {
+                        Ok(_) => transaction.commit().await.map_or_else(
+                            |error| {
+                                println!("delete_letter: Transaction failed {:?}", error);
+                                Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+                            },
+                            |_| Ok(http::StatusCode::OK),
+                        ),
+                        Err(_) => transaction.rollback().await.map_or_else(
+                            |error| {
+                                println!("delete_letter: Rollback failed {:?}", error);
+                                Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+                            },
+                            |_| Err(http::StatusCode::INTERNAL_SERVER_ERROR),
+                        ),
+                    }
                 }
-            }
-        }
-        Err(error) => {
-            println!("delete_letter: {:?}", error);
-            Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+                Err(_) => transaction.rollback().await.map_or_else(
+                    |error| {
+                        println!("delete_letter: Rollback failed {:?}", error);
+                        Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+                    },
+                    |_| Err(http::StatusCode::INTERNAL_SERVER_ERROR),
+                ),
+            };
         }
     }
+    Err(http::StatusCode::NOT_FOUND)
 }
 
 pub async fn send_letter(
@@ -88,45 +111,47 @@ pub async fn send_letter(
     let get_letter_res = LetterDao::get_by_id(id, &pool).await;
     if let Ok(letter) = get_letter_res {
         if letter.sending_info_id == None {
-            return Err(http::StatusCode::NOT_FOUND);
+            println!("send_letter: Letter has allready been sent.");
+            return Err(http::StatusCode::INTERNAL_SERVER_ERROR);
         }
-        let payload =
-            SendingInfoCreate::new(letter.id, "Stockholm".to_string(), "India".to_string(), now);
 
-        let create_sending_info_res = SendingInfoDao::create(payload, &pool).await;
+        if let Ok(transaction) = pool.begin().await {
+            let payload = SendingInfoCreate::new(
+                letter.id,
+                "Stockholm".to_string(),
+                "India".to_string(),
+                now,
+            );
 
-        match create_sending_info_res {
-            Ok(sending_info) => {
-                let update_letter_res = sqlx::query(
-                    r#"
-                        UPDATE letters
-                        SET sending_info_id = $1
-                        WHERE id = $2
-                        "#,
-                )
-                .bind(&sending_info.id)
-                .bind(id)
-                .execute(&pool)
-                .await;
+            let create_sending_info_res = SendingInfoDao::create(payload, &pool).await;
 
-                match update_letter_res {
-                    Ok(result) => match result.rows_affected() {
-                        0 => {
-                            println!("send_letter: Cannot update letter, letter does not exist");
-                            Err(http::StatusCode::NOT_FOUND)
-                        }
-                        _ => Ok((http::StatusCode::CREATED, axum::Json(sending_info))),
-                    },
-                    Err(error) => {
-                        println!("send_letter: {:?}", error);
-                        Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+            return match create_sending_info_res {
+                Ok(sending_info) => {
+                    let update_letter_res =
+                        LetterDao::update_sending_info(id, sending_info.id, &pool).await;
+
+                    match update_letter_res {
+                        Ok(_) => transaction.commit().await.map_or_else(
+                            |error| {
+                                println!("send_letter: Transaction failed {:?}", error);
+                                Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+                            },
+                            |_| Ok((http::StatusCode::CREATED, axum::Json(sending_info))),
+                        ),
+                        Err(_) => transaction.rollback().await.map_or_else(
+                            |_| Err(http::StatusCode::INTERNAL_SERVER_ERROR),
+                            |_| Err(http::StatusCode::INTERNAL_SERVER_ERROR),
+                        ),
                     }
                 }
-            }
-            Err(error) => {
-                println!("send_letter: {:?}", error);
-                Err(http::StatusCode::INTERNAL_SERVER_ERROR)
-            }
+                Err(_) => transaction.rollback().await.map_or_else(
+                    |error| {
+                        println!("send_letter: Rollback failed {:?}", error);
+                        Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+                    },
+                    |_| Err(http::StatusCode::INTERNAL_SERVER_ERROR),
+                ),
+            };
         }
     }
     Err(http::StatusCode::NOT_FOUND)

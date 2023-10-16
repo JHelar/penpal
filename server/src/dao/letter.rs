@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 #[derive(Debug, Serialize, FromRow)]
@@ -31,7 +31,6 @@ pub struct LetterDao {}
 
 #[derive(Debug, Deserialize)]
 pub struct CreateLetter {
-    by_user_id: uuid::Uuid,
     to_user_id: uuid::Uuid,
     message: String,
 }
@@ -56,8 +55,12 @@ impl LetterDao {
             }
         }
     }
-    pub async fn create(payload: CreateLetter, pool: &SqlitePool) -> Result<Letter, sqlx::Error> {
-        let letter = Letter::new(payload.message, payload.to_user_id, payload.by_user_id);
+    pub async fn create(
+        by_user_id: uuid::Uuid,
+        payload: CreateLetter,
+        pool: &SqlitePool,
+    ) -> Result<Letter, sqlx::Error> {
+        let letter = Letter::new(payload.message, payload.to_user_id, by_user_id);
         let res = sqlx::query(
             r#"
             INSERT INTO letters (id, message, to_user_id, by_user_id, created_at, updated_at)
@@ -81,18 +84,21 @@ impl LetterDao {
             }
         }
     }
-    pub async fn update(id: uuid::Uuid, payload: CreateLetter, pool: &SqlitePool) -> Result<(),sqlx::Error> {
+    pub async fn update(
+        id: uuid::Uuid,
+        payload: CreateLetter,
+        pool: &SqlitePool,
+    ) -> Result<(), sqlx::Error> {
         let now = chrono::Utc::now();
         let res = sqlx::query(
             r#"
             UPDATE letters
-            SET message = $1, to_user_id = $2, by_user_id = $3, updated_at = $4
+            SET message = $1, to_user_id = $2, updated_at = $4
             WHERE id = $5 AND sending_info_id IS NULL
             "#,
         )
         .bind(&payload.message)
         .bind(&payload.to_user_id)
-        .bind(&payload.by_user_id)
         .bind(now)
         .bind(id)
         .execute(pool)
@@ -103,8 +109,8 @@ impl LetterDao {
                 0 => {
                     println!("LetterDao::update: No letter to update.");
                     Err(sqlx::Error::RowNotFound)
-                },
-                _ => Ok(())
+                }
+                _ => Ok(()),
             },
             Err(error) => {
                 println!("LetterDao::update: {:?}", error);
@@ -127,6 +133,37 @@ impl LetterDao {
             Ok(_) => Ok(()),
             Err(error) => {
                 println!("LetterDao::delete: {:?}", error);
+                Err(error)
+            }
+        }
+    }
+    pub async fn update_sending_info(
+        id: uuid::Uuid,
+        sending_info_id: uuid::Uuid,
+        pool: &SqlitePool,
+    ) -> Result<(), sqlx::Error> {
+        let res = sqlx::query(
+            r#"
+                UPDATE letters
+                SET sending_info_id = $1
+                WHERE id = $2
+                "#,
+        )
+        .bind(sending_info_id)
+        .bind(id)
+        .execute(pool)
+        .await;
+
+        match res {
+            Ok(query_result) => match query_result.rows_affected() {
+                0 => {
+                    println!("LetterDao::update_sending: Letter not found");
+                    Err(sqlx::Error::RowNotFound)
+                }
+                _ => Ok(()),
+            },
+            Err(error) => {
+                println!("LetterDao::update_sending: Letter not found");
                 Err(error)
             }
         }

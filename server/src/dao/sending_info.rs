@@ -91,4 +91,47 @@ impl SendingInfoDao {
             }
         }
     }
+
+    pub async fn get_by_letter_id(
+        letter_id: uuid::Uuid,
+        pool: &SqlitePool,
+    ) -> Result<SendingInfo, sqlx::Error> {
+        let res = sqlx::query_as::<_, SendingInfo>(
+            r#"
+            SELECT * FROM sending_infos
+            WHERE letter_id = $1
+            "#,
+        )
+        .bind(letter_id)
+        .fetch_one(pool)
+        .await;
+
+        match res {
+            Ok(sending_info) => Ok(sending_info),
+            Err(error) => {
+                println!("SendingInfoDao::get_by_letter_id: {:?}", error);
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn delete(id: uuid::Uuid, pool: &SqlitePool) -> Result<(), sqlx::Error> {
+        let res = sqlx::query(
+            r#"
+            DELETE FROM sending_info
+            WHERE letter_id = $1
+            "#,
+        )
+        .bind(id)
+        .execute(pool)
+        .await;
+
+        match res {
+            Ok(_) => Ok(()),
+            Err(error) => {
+                println!("SendingInfoDao::delete: {:?}", error);
+                Err(error)
+            }
+        }
+    }
 }

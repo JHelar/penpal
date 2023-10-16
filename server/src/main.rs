@@ -1,6 +1,7 @@
 mod dao;
-
 mod handlers;
+mod middleware;
+
 use std::env;
 
 use axum::routing::{delete, get, post, put, Router};
@@ -19,12 +20,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pool = SqlitePool::connect_with(options).await?;
 
     let app = Router::new()
-        .route("/", get(handlers::hello_world))
+        .route("/me/letters", get(handlers::user::get_letter_by_user))
         .route("/letter", post(handlers::letter::create_letter))
         .route("/letter/:id", get(handlers::letter::get_letter))
         .route("/letter/:id", put(handlers::letter::update_letter))
         .route("/letter/:id", delete(handlers::letter::delete_letter))
+        .route(
+            "/letter/:id/info",
+            get(handlers::sending_info::get_sending_info),
+        )
         .route("/letter/:id/send", put(handlers::letter::send_letter))
+        .route_layer(axum::middleware::from_fn(middleware::auth))
+        // Non authenticated routes bellow
+        .route("/", get(handlers::hello_world))
+        .route("/register", post(handlers::user::create))
         .with_state(pool);
 
     println!("Starting server at: http://{}", addr);
