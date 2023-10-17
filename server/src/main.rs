@@ -19,8 +19,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let pool = SqlitePool::connect_with(options).await?;
 
-    let app = Router::new()
-        .route("/me/letters", get(handlers::user::get_letter_by_user))
+    let user_routes = Router::new()
+        .route("/letter", get(handlers::letter::get_all_letters))
         .route("/letter", post(handlers::letter::create_letter))
         .route("/letter/:id", get(handlers::letter::get_letter))
         .route("/letter/:id", put(handlers::letter::update_letter))
@@ -30,7 +30,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             get(handlers::sending_info::get_sending_info),
         )
         .route("/letter/:id/send", put(handlers::letter::send_letter))
-        .route_layer(axum::middleware::from_fn(middleware::auth))
+        .route_layer(axum::middleware::from_fn(middleware::auth));
+
+    let app = Router::new()
+        .nest("/me", user_routes)
         // Non authenticated routes bellow
         .route("/", get(handlers::hello_world))
         .route("/register", post(handlers::user::create))

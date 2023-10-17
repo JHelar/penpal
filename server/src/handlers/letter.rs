@@ -23,11 +23,12 @@ pub async fn create_letter(
 }
 
 pub async fn update_letter(
+    extract::Extension(current_user): extract::Extension<CurrentUser>,
     extract::State(pool): extract::State<SqlitePool>,
     extract::Path(id): extract::Path<uuid::Uuid>,
     axum::Json(payload): axum::Json<CreateLetter>,
 ) -> Result<http::StatusCode, http::StatusCode> {
-    let res = LetterDao::update(id, payload, &pool).await;
+    let res = LetterDao::update(current_user.id, id, payload, &pool).await;
 
     match res {
         Ok(_) => Ok(http::StatusCode::OK),
@@ -36,10 +37,11 @@ pub async fn update_letter(
 }
 
 pub async fn get_letter(
+    extract::Extension(current_user): extract::Extension<CurrentUser>,
     extract::State(pool): extract::State<SqlitePool>,
     extract::Path(id): extract::Path<uuid::Uuid>,
 ) -> Result<(http::StatusCode, axum::Json<Letter>), http::StatusCode> {
-    let res = LetterDao::get_by_id(id, &pool).await;
+    let res = LetterDao::get(current_user.id, id, &pool).await;
 
     match res {
         Ok(letter) => Ok((http::StatusCode::OK, axum::Json(letter))),
@@ -50,11 +52,24 @@ pub async fn get_letter(
     }
 }
 
+pub async fn get_all_letters(
+    extract::Extension(current_user): extract::Extension<CurrentUser>,
+    extract::State(pool): extract::State<SqlitePool>,
+) -> Result<(http::StatusCode, axum::Json<Vec<Letter>>), http::StatusCode> {
+    let res = LetterDao::get_all(current_user.id, &pool).await;
+
+    match res {
+        Ok(letters) => Ok((http::StatusCode::OK, axum::Json(letters))),
+        Err(_) => Err(http::StatusCode::NOT_FOUND),
+    }
+}
+
 pub async fn delete_letter(
+    extract::Extension(current_user): extract::Extension<CurrentUser>,
     extract::State(pool): extract::State<SqlitePool>,
     extract::Path(id): extract::Path<uuid::Uuid>,
 ) -> Result<http::StatusCode, http::StatusCode> {
-    if let Ok(letter) = LetterDao::get_by_id(id, &pool).await {
+    if let Ok(letter) = LetterDao::get(current_user.id, id, &pool).await {
         if let Ok(transaction) = pool.begin().await {
             let delete_letter_res = LetterDao::delete(id, &pool).await;
             return match delete_letter_res {
@@ -103,14 +118,15 @@ pub async fn delete_letter(
 }
 
 pub async fn send_letter(
+    extract::Extension(current_user): extract::Extension<CurrentUser>,
     extract::State(pool): extract::State<SqlitePool>,
     extract::Path(id): extract::Path<uuid::Uuid>,
 ) -> Result<(http::StatusCode, axum::Json<SendingInfo>), http::StatusCode> {
     let now = chrono::Utc::now();
 
-    let get_letter_res = LetterDao::get_by_id(id, &pool).await;
+    let get_letter_res = LetterDao::get(current_user.id, id, &pool).await;
     if let Ok(letter) = get_letter_res {
-        if letter.sending_info_id == None {
+        if letter.sending_info_id.is_some() {
             println!("send_letter: Letter has allready been sent.");
             return Err(http::StatusCode::INTERNAL_SERVER_ERROR);
         }

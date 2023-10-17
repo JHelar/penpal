@@ -36,14 +36,19 @@ pub struct CreateLetter {
 }
 
 impl LetterDao {
-    pub async fn get_by_id(id: uuid::Uuid, pool: &SqlitePool) -> Result<Letter, sqlx::Error> {
+    pub async fn get(
+        by_user_id: uuid::Uuid,
+        id: uuid::Uuid,
+        pool: &SqlitePool,
+    ) -> Result<Letter, sqlx::Error> {
         let res = sqlx::query_as::<_, Letter>(
             r#"
             SELECT * FROM letters
-            WHERE id = $1
+            WHERE id = $1 AND by_user_id = $2
             "#,
         )
         .bind(id)
+        .bind(by_user_id)
         .fetch_one(pool)
         .await;
 
@@ -51,6 +56,28 @@ impl LetterDao {
             Ok(letter) => Ok(letter),
             Err(error) => {
                 println!("LetterDao::get_by_id: {:?}", error);
+                Err(error)
+            }
+        }
+    }
+    pub async fn get_all(
+        by_user_id: uuid::Uuid,
+        pool: &SqlitePool,
+    ) -> Result<Vec<Letter>, sqlx::Error> {
+        let res = sqlx::query_as::<_, Letter>(
+            r#"
+            SELECT * FROM letters
+            WHERE by_user_id = $1
+            "#,
+        )
+        .bind(by_user_id)
+        .fetch_all(pool)
+        .await;
+
+        match res {
+            Ok(letters) => Ok(letters),
+            Err(error) => {
+                println!("UserDao::get_letters: {:?}", error);
                 Err(error)
             }
         }
@@ -85,6 +112,7 @@ impl LetterDao {
         }
     }
     pub async fn update(
+        by_user_id: uuid::Uuid,
         id: uuid::Uuid,
         payload: CreateLetter,
         pool: &SqlitePool,
@@ -93,14 +121,15 @@ impl LetterDao {
         let res = sqlx::query(
             r#"
             UPDATE letters
-            SET message = $1, to_user_id = $2, updated_at = $4
-            WHERE id = $5 AND sending_info_id IS NULL
+            SET message = $1, to_user_id = $2, updated_at = $3
+            WHERE id = $4 AND by_user_id = $5 AND sending_info_id IS NULL
             "#,
         )
         .bind(&payload.message)
         .bind(&payload.to_user_id)
         .bind(now)
         .bind(id)
+        .bind(by_user_id)
         .execute(pool)
         .await;
 

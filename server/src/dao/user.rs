@@ -40,27 +40,4 @@ impl UserDao {
             }
         }
     }
-
-    pub async fn get_letters(
-        id: uuid::Uuid,
-        pool: &SqlitePool,
-    ) -> Result<Vec<Letter>, sqlx::Error> {
-        let res = sqlx::query_as::<_, Letter>(
-            r#"
-            SELECT * FROM letters
-            WHERE by_user_id = $1
-            "#,
-        )
-        .bind(id)
-        .fetch_all(pool)
-        .await;
-
-        match res {
-            Ok(letters) => Ok(letters),
-            Err(error) => {
-                println!("UserDao::get_letters: {:?}", error);
-                Err(error)
-            }
-        }
-    }
 }
