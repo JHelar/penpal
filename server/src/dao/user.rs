@@ -1,8 +1,6 @@
 use serde::Serialize;
 use sqlx::{FromRow, SqlitePool};
 
-use super::letter::Letter;
-
 #[derive(Debug, Serialize, FromRow)]
 pub struct User {
     id: uuid::Uuid,

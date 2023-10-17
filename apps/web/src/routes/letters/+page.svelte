@@ -6,6 +6,9 @@
 <h1>LETTERS</h1>
 <ul>
 	{#each data.letters as letter}
-		<li>{letter.id}</li>
+		<li>
+			<span class="text-base font-bold">{letter.id}</span>
+			<span class="text-base">{letter.message}</span>
+		</li>
 	{/each}
 </ul>

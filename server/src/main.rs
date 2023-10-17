@@ -6,6 +6,7 @@ use std::env;
 
 use axum::routing::{delete, get, post, put, Router};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
+use tower_http::cors::{Any, CorsLayer};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -18,6 +19,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .create_if_missing(true);
 
     let pool = SqlitePool::connect_with(options).await?;
+
+    let cors = CorsLayer::new().allow_methods(Any).allow_origin(Any);
 
     let user_routes = Router::new()
         .route("/letter", get(handlers::letter::get_all_letters))
@@ -37,6 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Non authenticated routes bellow
         .route("/", get(handlers::hello_world))
         .route("/register", post(handlers::user::create))
+        .layer(cors)
         .with_state(pool);
 
     println!("Starting server at: http://{}", addr);
