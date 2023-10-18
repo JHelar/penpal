@@ -32,6 +32,8 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@auth/core": "^0.17.0",
+		"@auth/sveltekit": "^0.3.10",
 		"@popperjs/core": "^2.11.8",
 		"flowbite": "^1.8.1",
 		"flowbite-svelte": "^0.44.18",

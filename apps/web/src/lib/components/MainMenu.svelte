@@ -12,5 +12,6 @@
 	<NavUl {activeUrl}>
 		<NavLi href="/">Home</NavLi>
 		<NavLi href="/letters">Letters</NavLi>
+		<NavLi href="/login">Login</NavLi>
 	</NavUl>
 </Navbar>
