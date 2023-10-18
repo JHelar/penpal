@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { page } from '$app/stores';
 	export let data: PageData;
+
+	$: console.log($page.data.session);
 </script>
 
 <h1>LETTERS</h1>

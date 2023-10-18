@@ -6,7 +6,7 @@ use crate::{
         letter::{CreateLetter, Letter, LetterDao},
         sending_info::{SendingInfo, SendingInfoCreate, SendingInfoDao},
     },
-    middleware::CurrentUser,
+    middleware::authorize_current_user::CurrentUser,
 };
 
 pub async fn create_letter(

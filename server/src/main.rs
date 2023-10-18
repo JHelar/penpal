@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/me", user_routes)
         // Non authenticated routes bellow
         .route("/", get(handlers::hello_world))
-        .route("/register", post(handlers::user::create))
+        .route("/signIn", post(handlers::user::get_or_create))
         .layer(cors)
         .with_state(pool);
 
