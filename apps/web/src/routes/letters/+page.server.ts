@@ -15,8 +15,10 @@ const LetterSchema = object({
 const LettersSchema = array(LetterSchema);
 
 /** @type {import('./$types').PageLoad} */
-export async function load({ fetch }) {
-	const lettersResponse = await fetch(`${VITE_SERVER_API_URL}/me/letter`);
+export async function load({ fetch, request }) {
+	const lettersResponse = await fetch(`${VITE_SERVER_API_URL}/me/letter`, {
+		headers: request.headers
+	});
 	if (!lettersResponse.ok) {
 		return {
 			letters: []

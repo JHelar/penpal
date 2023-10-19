@@ -65,12 +65,8 @@ const svelteAuthHandle = SvelteKitAuth({
 			const email = profile?.email;
 			const verified = profile?.email_verified;
 			if (trigger === 'signIn' && email && verified) {
+				// @todo: Super insecure, use provider and providerID!
 				const user = await getOrCreateUser(email);
-				console.log({
-					profile,
-					token,
-					trigger
-				});
 				if (user) {
 					return {
 						...token,
