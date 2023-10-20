@@ -18,8 +18,6 @@ pub async fn auth<B>(mut req: Request<B>, next: Next<B>) -> Result<Response, Sta
     };
 
     if let Some(current_user) = authorize_current_user::authorize_current_user(cookie_str) {
-        // insert the current user into a request extension so the handler can
-        // extract it
         println!("auth: current_user {:?}", current_user);
         req.extensions_mut().insert(current_user);
         Ok(next.run(req).await)

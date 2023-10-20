@@ -1,32 +1,9 @@
-import { VITE_SERVER_API_URL } from '$env/static/private';
-import { array, coerce, date, object, parse, string, uuid } from 'valibot';
-
-const DateSchema = coerce(date(), (input) => new Date(input as string));
-
-const LetterSchema = object({
-	id: string([uuid()]),
-	message: string(),
-	to_user_id: string([uuid()]),
-	by_user_id: string([uuid()]),
-	created_at: DateSchema,
-	updated_at: DateSchema
-});
-
-const LettersSchema = array(LetterSchema);
+import { getLetters } from "$lib/server/letter";
 
 /** @type {import('./$types').PageLoad} */
-export async function load({ fetch, request }) {
-	const lettersResponse = await fetch(`${VITE_SERVER_API_URL}/me/letter`, {
-		headers: request.headers
-	});
-	if (!lettersResponse.ok) {
-		return {
-			letters: []
-		};
-	}
-
-	const letters = parse(LettersSchema, await lettersResponse.json());
-	return {
-		letters
-	};
+export async function load({ request }) {
+  const letters = await getLetters(request);
+  return {
+    letters,
+  };
 }

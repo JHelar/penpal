@@ -1,7 +1,17 @@
 <script>
-	import { Button } from 'flowbite-svelte';
+	import { Button, Heading } from 'flowbite-svelte';
 	import { signIn } from '@auth/sveltekit/client';
 </script>
 
-<h1>Login user</h1>
-<Button color="green" on:click={() => signIn('google')}>Login</Button>
+<div class="flex flex-col mx-auto max-w-lg">
+	<Heading tag="h1" customSize="text-2xl font-extrabold md:text-3xl lg:text-4xl"
+		>Sign in to PenPal</Heading
+	>
+	<Button
+		class="mt-4"
+		color="alternative"
+		pill
+		outline
+		on:click={() => signIn('google', { callbackUrl: '/' })}>Sign in with Google</Button
+	>
+</div>
