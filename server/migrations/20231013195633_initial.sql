@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS letters (
     id UUID PRIMARY KEY,
     message TEXT NOT NULL,
+    subject TEXT NOT NULL,
     to_user_id UUID NOT NULL,
     by_user_id UUID NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,

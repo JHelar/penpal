@@ -5,6 +5,7 @@ use sqlx::{FromRow, SqlitePool};
 pub struct Letter {
     pub id: uuid::Uuid,
     pub message: String,
+    pub subject: String,
     pub to_user_id: uuid::Uuid,
     pub by_user_id: uuid::Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -13,11 +14,12 @@ pub struct Letter {
 }
 
 impl Letter {
-    pub fn new(message: String, to_user_id: uuid::Uuid, by_user_id: uuid::Uuid) -> Self {
+    pub fn new(message: String, subject: String, to_user_id: uuid::Uuid, by_user_id: uuid::Uuid) -> Self {
         let now = chrono::Utc::now();
         Self {
             id: uuid::Uuid::new_v4(),
             message,
+            subject,
             to_user_id,
             by_user_id,
             created_at: now,
@@ -32,6 +34,7 @@ pub struct LetterDao {}
 #[derive(Debug, Deserialize)]
 pub struct CreateLetter {
     to_user_id: uuid::Uuid,
+    subject: String,
     message: String,
 }
 
@@ -87,15 +90,16 @@ impl LetterDao {
         payload: CreateLetter,
         pool: &SqlitePool,
     ) -> Result<Letter, sqlx::Error> {
-        let letter = Letter::new(payload.message, payload.to_user_id, by_user_id);
+        let letter = Letter::new(payload.message, payload.subject,payload.to_user_id, by_user_id);
         let res = sqlx::query(
             r#"
-            INSERT INTO letters (id, message, to_user_id, by_user_id, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO letters (id, message, subject, to_user_id, by_user_id, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             "#,
         )
         .bind(&letter.id)
         .bind(&letter.message)
+        .bind(&letter.subject)
         .bind(&letter.to_user_id)
         .bind(&letter.by_user_id)
         .bind(&letter.created_at)

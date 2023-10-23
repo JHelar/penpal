@@ -1,29 +1,37 @@
-import { createLetter } from "$lib/server/letter";
-import type { Actions } from "./$types";
+import { CreateLetterSchema, createLetter } from '$lib/server/letter';
+import { flatten, safeParse } from 'valibot';
+import type { Actions } from './$types';
+import { fail, redirect } from '@sveltejs/kit';
 
 export const actions = {
-    default: async ({ request }) => {
-        const data = await request.formData()
-        const message = data.get('message');
+	default: async ({ request }) => {
+		const data = await request.formData();
+		const message = data.get('message');
+		const subject = data.get('subject');
 
-        if(!message || typeof message !== 'string') {
-            return {
-                success: false
-            }
-        }
+		const letterParse = safeParse(CreateLetterSchema, {
+			message,
+			subject
+		});
 
-        const letter = await createLetter({ message, request })
-        
-        if(!letter) {
-            return {
-                success: false
-            }
-        }
+		if (letterParse.success) {
+			const letter = await createLetter({ letter: letterParse.output, request });
+			if (!letter) {
+				return fail(400, {
+					subject,
+					message,
+					reason: {
+						general: 'Ooops, something went wrong!'
+					}
+				});
+			}
+			throw redirect(302, `/letters/${letter.id}`);
+		}
 
-        console.log(letter)
-
-        return {
-            success: true
-        }
-    }
-} satisfies Actions
+		return fail(400, {
+			subject,
+			message,
+			reason: flatten(letterParse.issues).nested
+		});
+	}
+} satisfies Actions;
