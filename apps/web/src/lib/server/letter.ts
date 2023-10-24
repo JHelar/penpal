@@ -27,8 +27,9 @@ export const LetterSchema = object({
 	created_at: DateSchema,
 	updated_at: DateSchema
 });
+export type Letter = Output<typeof LetterSchema>
 
-export const CreateLetterSchema = pick(LetterSchema, ['message', 'subject']);
+export const CreateLetterSchema = pick(LetterSchema, ['message', 'subject', 'to_user_id']);
 
 export const LettersSchema = array(LetterSchema);
 
@@ -86,10 +87,7 @@ export async function createLetter({ letter, request }: CreateLetterArgs) {
 			'content-type': 'application/json'
 		},
 		method: 'post',
-		body: JSON.stringify({
-			...letter,
-			to_user_id: '9d8a6fee-a19a-4372-966b-98ad3be2f591'
-		})
+		body: JSON.stringify(letter)
 	});
 
 	if (!letterResponse.ok) {

@@ -1,9 +1,13 @@
 <script lang="ts">
-	import { Button, Heading, Helper, Input, Label, Textarea } from 'flowbite-svelte';
+	import { Button, Heading, Helper, Input, Label, Select, Textarea } from 'flowbite-svelte';
 	import type { TextareaProps } from 'flowbite-svelte/dist/forms/Textarea.svelte';
-	import type { ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
+	export let data: PageData;
 	export let form: ActionData;
+
+	let recipient = form?.toUserId ?? data.toUserId;
+	let lockRecipient = Boolean(data.toUserId);
 
 	const textareaprops: TextareaProps = {
 		id: 'message',
@@ -23,6 +27,14 @@
 		{#if form?.reason.general}
 			<Helper color="red">{form.reason.general}</Helper>
 		{/if}
+		<Label class="block space-y-2">
+			<span>Recipient</span>
+			<Select required disabled={lockRecipient} bind:value={recipient} items={data.recipients} />
+			<input type="hidden" name="to_user_id" value={recipient} />
+			{#if form?.reason && 'to_user_id' in form.reason}
+				<Helper color="red">{form.reason.to_user_id}</Helper>
+			{/if}
+		</Label>
 		<Label class="block space-y-2">
 			<span>Subject</span>
 			<Input
@@ -44,6 +56,6 @@
 				<Helper color="red">{form.reason.message}</Helper>
 			{/if}
 		</Label>
-		<Button type="submit">Send</Button>
+		<Button class="justify-self-end" type="submit">Send</Button>
 	</form>
 </div>
