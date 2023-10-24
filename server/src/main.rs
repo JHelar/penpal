@@ -23,6 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cors = CorsLayer::new().allow_methods(Any).allow_origin(Any);
 
     let user_routes = Router::new()
+        .route("/", post(handlers::user::update))
         .route("/letter", get(handlers::letter::get_all_letters))
         .route("/letter", post(handlers::letter::create_letter))
         .route("/letter/:id", get(handlers::letter::get_letter))

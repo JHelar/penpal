@@ -1,7 +1,6 @@
 <script>
 	import { page } from '$app/stores';
 	import { signOut } from '@auth/sveltekit/client';
-	import { redirect } from '@sveltejs/kit';
 	import {
 		Navbar,
 		NavBrand,
@@ -14,6 +13,7 @@
 		DropdownItem,
 		DropdownDivider
 	} from 'flowbite-svelte';
+
 	$: activeUrl = $page.url.pathname;
 	$: user = $page.data.session?.user;
 </script>
@@ -27,7 +27,7 @@
 			{#if user}
 				<Avatar class="cursor-pointer" src={user.image ?? ''} rounded />
 				<Dropdown class="w-44 z-20">
-					<DropdownItem href="/">Profile</DropdownItem>
+					<DropdownItem href="/me">Profile</DropdownItem>
 					<DropdownDivider />
 					<DropdownItem on:click={() => signOut({ callbackUrl: '/' })}>Sign out</DropdownItem>
 				</Dropdown>

@@ -5,13 +5,26 @@ use sqlx::{FromRow, SqlitePool};
 pub struct User {
     id: uuid::Uuid,
     email: String,
+    username: Option<String>,
+    display_name: Option<String>,
+    profile_image: Option<String>,
+    is_initialized: bool,
+    created_at: chrono::DateTime<chrono::Utc>,
+    updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl User {
     pub fn new(email: String) -> Self {
+        let now = chrono::Utc::now();
         Self {
             id: uuid::Uuid::new_v4(),
             email,
+            display_name: None,
+            profile_image: None,
+            username: None,
+            is_initialized: false,
+            created_at: now,
+            updated_at: now,
         }
     }
 }
@@ -19,6 +32,13 @@ impl User {
 #[derive(Debug, Deserialize)]
 pub struct CreateUser {
     pub email: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateUser {
+    username: String,
+    display_name: String,
+    profile_image: String,
 }
 
 pub struct UserDao {}
@@ -29,12 +49,15 @@ impl UserDao {
 
         let res = sqlx::query(
             r#"
-            INSERT INTO users (id, email)
-            VALUES ($1, $2)    
+            INSERT INTO users (id, email, created_at, updated_at, is_initialized)
+            VALUES ($1, $2, $3, $4, $5)    
             "#,
         )
         .bind(&user.id)
         .bind(&user.email)
+        .bind(&user.created_at)
+        .bind(&user.updated_at)
+        .bind(false)
         .execute(pool)
         .await;
 
@@ -62,6 +85,43 @@ impl UserDao {
             Ok(user) => Ok(user),
             Err(error) => {
                 println!("UserDao::get_by_email: {:?}", error);
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn update(
+        user_id: uuid::Uuid,
+        payload: UpdateUser,
+        pool: &SqlitePool,
+    ) -> Result<(), sqlx::Error> {
+        let now = chrono::Utc::now();
+        let res = sqlx::query(
+            r#"
+            UPDATE users
+            SET username = $1, display_name = $2, profile_image = $3, is_initialized = $4, updated_at = $5
+            WHERE id = $6
+            "#,
+        )
+        .bind(&payload.username)
+        .bind(&payload.display_name)
+        .bind(&payload.profile_image)
+        .bind(true)
+        .bind(now)
+        .bind(user_id)
+        .execute(pool)
+        .await;
+
+        match res {
+            Ok(query_result) => match query_result.rows_affected() {
+                0 => {
+                    println!("UserDao::update: No user to update.");
+                    Err(sqlx::Error::RowNotFound)
+                }
+                _ => Ok(()),
+            },
+            Err(error) => {
+                println!("UserDao::update: update {:?}", error);
                 Err(error)
             }
         }

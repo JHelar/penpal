@@ -1,6 +1,6 @@
-/** @type {import('./$types').LayoutServerLoad} */
-export async function load(event) {
+/** @type {import('./$types').PageLoad} */
+export async function load({ locals }) {
 	return {
-		session: await event.locals.getSession()
+		session: await locals.getSession()
 	};
 }

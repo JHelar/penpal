@@ -16,7 +16,7 @@ import {
 } from 'valibot';
 import { fetch } from 'undici';
 
-const DateSchema = coerce(date(), (input) => new Date(input as string));
+export const DateSchema = coerce(date(), (input) => new Date(input as string));
 
 export const LetterSchema = object({
 	id: string([uuid()]),
@@ -27,7 +27,7 @@ export const LetterSchema = object({
 	created_at: DateSchema,
 	updated_at: DateSchema
 });
-export type Letter = Output<typeof LetterSchema>
+export type Letter = Output<typeof LetterSchema>;
 
 export const CreateLetterSchema = pick(LetterSchema, ['message', 'subject', 'to_user_id']);
 

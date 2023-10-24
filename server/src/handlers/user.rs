@@ -1,7 +1,10 @@
 use axum::{extract, http};
 use sqlx::SqlitePool;
 
-use crate::dao::user::{CreateUser, User, UserDao};
+use crate::{
+    dao::user::{CreateUser, UpdateUser, User, UserDao},
+    middleware::authorize_current_user::CurrentUser,
+};
 
 pub async fn get_or_create(
     extract::State(pool): extract::State<SqlitePool>,
@@ -21,5 +24,18 @@ pub async fn get_or_create(
             }
             _ => Err(http::StatusCode::INTERNAL_SERVER_ERROR),
         },
+    }
+}
+
+pub async fn update(
+    extract::Extension(current_user): extract::Extension<CurrentUser>,
+    extract::State(pool): extract::State<SqlitePool>,
+    extract::Json(payload): extract::Json<UpdateUser>,
+) -> Result<http::StatusCode, http::StatusCode> {
+    let res = UserDao::update(current_user.id, payload, &pool).await;
+
+    match res {
+        Ok(_) => Ok(http::StatusCode::ACCEPTED),
+        Err(_) => Err(http::StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
