@@ -80,15 +80,25 @@ const svelteAuthHandle = SvelteKitAuth({
 
 const initializeUserRedirect: Handle = async ({ event, resolve }) => {
 	const session = await event.locals.getSession();
-	if (session) {
+	if (session?.user) {
 		const user = session.user;
-		if (user) {
-			if (!user.is_initialized && event.url.pathname !== '/me') {
-				return new Response('Redirect', { status: 303, headers: { Location: '/me' } });
-			}
+		if (!user.is_initialized && event.url.pathname !== '/me') {
+			return new Response("Redirect", { status: 302, headers: { Location: '/me' } });
 		}
 	}
 	return resolve(event);
 };
 
-export const handle = sequence(svelteAuthHandle, initializeUserRedirect);
+const AUTH_ROUTES = ['/letters', '/me'];
+const validateRoute: Handle = async ({ event, resolve }) => {
+	const session = await event.locals.getSession();
+	if (AUTH_ROUTES.some((authRoute) => event.url.pathname.startsWith(authRoute))) {
+		if (session?.user) {
+			return resolve(event);
+		}
+		return new Response("Unauthorized", { status: 302, headers: { Location: '/' } });
+	}
+	return resolve(event);
+};
+
+export const handle = sequence(svelteAuthHandle, initializeUserRedirect, validateRoute);
