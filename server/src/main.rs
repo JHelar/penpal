@@ -5,8 +5,13 @@ mod middleware;
 use std::env;
 
 use axum::routing::{delete, get, post, put, Router};
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
+use sqlx::{
+    migrate::Migrator,
+    sqlite::{SqliteConnectOptions, SqlitePool},
+};
 use tower_http::cors::{Any, CorsLayer};
+
+static MIGRATOR: Migrator = sqlx::migrate!();
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -19,6 +24,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .create_if_missing(true);
 
     let pool = SqlitePool::connect_with(options).await?;
+
+    MIGRATOR.run(&pool).await?;
 
     let cors = CorsLayer::new().allow_methods(Any).allow_origin(Any);
 
