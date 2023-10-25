@@ -91,7 +91,6 @@ export async function createLetter({ letter, request }: CreateLetterArgs) {
 	});
 
 	if (!letterResponse.ok) {
-		console.log(letterResponse.statusText);
 		return null;
 	}
 

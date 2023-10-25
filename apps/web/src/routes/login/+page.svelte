@@ -12,6 +12,6 @@
 		color="alternative"
 		pill
 		outline
-		on:click={() => signIn('google', { callbackUrl: '/me' })}>Sign in with Google</Button
+		on:click={() => signIn('google', { callbackUrl: '/' })}>Sign in with Google</Button
 	>
 </div>

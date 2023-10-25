@@ -25,7 +25,7 @@
 	<div class="flex items-center gap-x-4">
 		<div class="flex md:order-2">
 			{#if user}
-				<Avatar class="cursor-pointer" src={user.image ?? ''} rounded />
+				<Avatar class="cursor-pointer" src={user.profile_image ?? ''} rounded />
 				<Dropdown class="w-44 z-20">
 					<DropdownItem href="/me">Profile</DropdownItem>
 					<DropdownDivider />

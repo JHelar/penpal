@@ -7,6 +7,7 @@ import {
 } from '$env/static/private';
 import { sequence } from '@sveltejs/kit/hooks';
 import { getOrCreateUser } from './lib/server/user';
+import type { Handle } from '@sveltejs/kit';
 
 const svelteAuthHandle = SvelteKitAuth({
 	providers: [
@@ -42,7 +43,6 @@ const svelteAuthHandle = SvelteKitAuth({
 			return {
 				expires: session.expires,
 				user: {
-					...session.user,
 					...user,
 					profile_image: user.profile_image ?? session.user?.image,
 					display_name: user.display_name ?? session.user?.name
@@ -78,4 +78,17 @@ const svelteAuthHandle = SvelteKitAuth({
 	secret: VITE_AUTH_SECRET
 });
 
-export const handle = sequence(svelteAuthHandle);
+const initializeUserRedirect: Handle = async ({ event, resolve }) => {
+	const session = await event.locals.getSession();
+	if (session) {
+		const user = session.user;
+		if (user) {
+			if (!user.is_initialized && event.url.pathname !== '/me') {
+				return new Response('Redirect', { status: 303, headers: { Location: '/me' } });
+			}
+		}
+	}
+	return resolve(event);
+};
+
+export const handle = sequence(svelteAuthHandle, initializeUserRedirect);

@@ -1,5 +1,5 @@
 import { VITE_SERVER_API_URL } from '$env/static/private';
-import { boolean, email, nullable, object, parse, string, uuid, type Output } from 'valibot';
+import { boolean, email, nullable, object, parse, string, uuid, type Output, url } from 'valibot';
 import { DateSchema } from './letter';
 
 const UserSchema = object({
@@ -32,23 +32,29 @@ export async function getOrCreateUser(email: string) {
 	return parse(UserSchema, await signInRes.json());
 }
 
+export const UpdateUserSchema = object({
+	username: string(),
+	display_name: string(),
+	profile_image: string([url()])
+});
+
 type UpdateUserArgs = {
-	username: string;
-	display_name: string;
-	profile_image: string;
+	payload: Output<typeof UpdateUserSchema>;
 	request: Request;
 };
-export async function updateUser({ request, ...args }: UpdateUserArgs) {
+export async function updateUser({ request, payload }: UpdateUserArgs) {
 	const updateUserRes = await fetch(`${VITE_SERVER_API_URL}/me`, {
 		method: 'POST',
-		body: JSON.stringify({
-			args
-		}),
+		body: JSON.stringify(payload),
 		headers: {
 			cookie: request.headers.get('cookie') ?? '',
-			'Content-Type': 'application/json'
+			'content-type': 'application/json'
 		}
 	});
+
+	if (!updateUserRes.ok) {
+		console.error(updateUserRes.statusText, updateUserRes.status);
+	}
 
 	return updateUserRes.ok;
 }
