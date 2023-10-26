@@ -26,6 +26,7 @@ struct JWTPayload {
 }
 
 const KEY_INFO: &[u8; 32] = b"Auth.js Generated Encryption Key";
+const SESSION_TOKEN_NAME: &str = "next-auth.session-token";
 
 fn get_derived_encryption_key() -> JWK<Empty> {
     let key_secret = env::var("AUTH_SECRET").expect("Missing AUTH_SECRET");
@@ -40,7 +41,7 @@ fn get_derived_encryption_key() -> JWK<Empty> {
 pub fn authorize_current_user(cookie_str: &str) -> Option<CurrentUser> {
     for cookie in Cookie::split_parse(cookie_str) {
         if let Some(cookie) = cookie.ok() {
-            if cookie.name() == "next-auth.session-token" {
+            if cookie.name().ends_with(SESSION_TOKEN_NAME) {
                 let token = cookie.value();
                 let key = get_derived_encryption_key();
                 let compact = Compact::<Vec<u8>, Empty>::new_encrypted(&token);
