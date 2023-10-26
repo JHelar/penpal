@@ -13,19 +13,17 @@ use tower_http::cors::{Any, CorsLayer};
 
 static MIGRATOR: Migrator = sqlx::migrate!();
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string());
-    let addr = format!("0.0.0.0:{}", port);
+#[shuttle_runtime::main]
+async fn axum() -> shuttle_axum::ShuttleAxum {
     let database_url = env::var("DATABASE_URL").expect("Missing DATABASE_URL");
 
     let options = SqliteConnectOptions::new()
         .filename(database_url)
         .create_if_missing(true);
 
-    let pool = SqlitePool::connect_with(options).await?;
+    let pool = SqlitePool::connect_with(options).await.unwrap();
 
-    MIGRATOR.run(&pool).await?;
+    MIGRATOR.run(&pool).await.unwrap();
 
     let cors = CorsLayer::new().allow_methods(Any).allow_origin(Any);
 
@@ -55,12 +53,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(cors)
         .with_state(pool);
 
-    println!("Starting server at: http://{}", addr);
-
-    axum::Server::bind(&addr.parse().unwrap())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
-
-    Ok(())
+    Ok(app.into())
 }
