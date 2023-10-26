@@ -38,9 +38,9 @@ pub struct CreateUser {
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateUser {
-    username: String,
-    display_name: String,
-    profile_image: String,
+    pub username: String,
+    pub display_name: String,
+    pub profile_image: String,
 }
 
 pub struct UserDao {}

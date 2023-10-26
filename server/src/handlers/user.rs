@@ -58,7 +58,11 @@ pub async fn get_random_recipient(
 
     match res {
         Ok(users) => {
-            let user = users.choose(&mut thread_rng()).unwrap();
+            let user = if let Some(user) = users.choose(&mut thread_rng()) {
+                user
+            } else {
+                return Err(http::StatusCode::NO_CONTENT);
+            };
 
             let recipient = Recipient {
                 display_name: user
