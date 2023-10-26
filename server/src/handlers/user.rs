@@ -1,10 +1,14 @@
 use axum::{extract, http};
+use rand::{seq::SliceRandom, thread_rng};
+use serde::Serialize;
 use sqlx::SqlitePool;
 
 use crate::{
     dao::user::{CreateUser, UpdateUser, User, UserDao},
     middleware::authorize_current_user::CurrentUser,
 };
+
+const DEFAULT_AVATAR_PROFILE_IMAGE: &str = "https://as1.ftcdn.net/v2/jpg/03/53/11/00/1000_F_353110097_nbpmfn9iHlxef4EDIhXB1tdTD0lcWhG9.jpg";
 
 pub async fn get_or_create(
     extract::State(pool): extract::State<SqlitePool>,
@@ -36,6 +40,39 @@ pub async fn update(
 
     match res {
         Ok(_) => Ok(http::StatusCode::ACCEPTED),
+        Err(_) => Err(http::StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct Recipient {
+    id: uuid::Uuid,
+    display_name: String,
+    profile_image: String,
+}
+pub async fn get_random_recipient(
+    extract::Extension(current_user): extract::Extension<CurrentUser>,
+    extract::State(pool): extract::State<SqlitePool>,
+) -> Result<(http::StatusCode, axum::Json<Recipient>), http::StatusCode> {
+    let res = UserDao::get_all_other_users(current_user.id, &pool).await;
+
+    match res {
+        Ok(users) => {
+            let user = users.choose(&mut thread_rng()).unwrap();
+
+            let recipient = Recipient {
+                display_name: user
+                    .display_name
+                    .clone()
+                    .unwrap_or_else(|| "Unknown".to_string()),
+                id: user.id,
+                profile_image: user
+                    .profile_image
+                    .clone()
+                    .unwrap_or_else(|| DEFAULT_AVATAR_PROFILE_IMAGE.to_string()),
+            };
+            Ok((http::StatusCode::OK, axum::Json(recipient)))
+        }
         Err(_) => Err(http::StatusCode::INTERNAL_SERVER_ERROR),
     }
 }

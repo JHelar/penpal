@@ -14,7 +14,12 @@ pub struct Letter {
 }
 
 impl Letter {
-    pub fn new(message: String, subject: String, to_user_id: uuid::Uuid, by_user_id: uuid::Uuid) -> Self {
+    pub fn new(
+        message: String,
+        subject: String,
+        to_user_id: uuid::Uuid,
+        by_user_id: uuid::Uuid,
+    ) -> Self {
         let now = chrono::Utc::now();
         Self {
             id: uuid::Uuid::new_v4(),
@@ -70,7 +75,7 @@ impl LetterDao {
         let res = sqlx::query_as::<_, Letter>(
             r#"
             SELECT * FROM letters
-            WHERE by_user_id = $1
+            WHERE by_user_id = $1 OR to_user_id = $1
             "#,
         )
         .bind(by_user_id)
@@ -90,7 +95,12 @@ impl LetterDao {
         payload: CreateLetter,
         pool: &SqlitePool,
     ) -> Result<Letter, sqlx::Error> {
-        let letter = Letter::new(payload.message, payload.subject,payload.to_user_id, by_user_id);
+        let letter = Letter::new(
+            payload.message,
+            payload.subject,
+            payload.to_user_id,
+            by_user_id,
+        );
         let res = sqlx::query(
             r#"
             INSERT INTO letters (id, message, subject, to_user_id, by_user_id, created_at, updated_at)

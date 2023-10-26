@@ -3,15 +3,17 @@ use sqlx::{FromRow, SqlitePool};
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct User {
-    id: uuid::Uuid,
+    pub id: uuid::Uuid,
     email: String,
     username: Option<String>,
-    display_name: Option<String>,
-    profile_image: Option<String>,
+    pub display_name: Option<String>,
+    pub profile_image: Option<String>,
     is_initialized: bool,
     created_at: chrono::DateTime<chrono::Utc>,
     updated_at: chrono::DateTime<chrono::Utc>,
 }
+
+impl User {}
 
 impl User {
     pub fn new(email: String) -> Self {
@@ -85,6 +87,29 @@ impl UserDao {
             Ok(user) => Ok(user),
             Err(error) => {
                 println!("UserDao::get_by_email: {:?}", error);
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn get_all_other_users(
+        user_id: uuid::Uuid,
+        pool: &SqlitePool,
+    ) -> Result<Vec<User>, sqlx::Error> {
+        let res = sqlx::query_as::<_, User>(
+            r#"
+            SELECT * FROM users
+            WHERE id != $1 AND is_initialized = 1 
+            "#,
+        )
+        .bind(user_id)
+        .fetch_all(pool)
+        .await;
+
+        match res {
+            Ok(users) => Ok(users),
+            Err(error) => {
+                println!("UserDao::get_all_other_users: {:?}", error);
                 Err(error)
             }
         }
