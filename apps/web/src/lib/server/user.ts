@@ -72,7 +72,28 @@ type GetRandomRecipientArgs = {
 };
 
 export async function getRandomRecipient({ request }: GetRandomRecipientArgs) {
-	const result = await fetch(`${VITE_SERVER_API_URL}/me/random_recipient`, {
+	const result = await fetch(`${VITE_SERVER_API_URL}/me/recipient/random`, {
+		method: 'get',
+		headers: {
+			cookie: request.headers.get('cookie') ?? '',
+			'content-type': 'application/json'
+		}
+	});
+
+	if (!result.ok) {
+		console.log(result.statusText);
+		return null;
+	}
+
+	return parse(RecipientSchema, await result.json());
+}
+
+type GetRecipientArgs = {
+	userId: string;
+	request: Request;
+};
+export async function getRecipient({ request, userId }: GetRecipientArgs) {
+	const result = await fetch(`${VITE_SERVER_API_URL}/me/recipient/${userId}`, {
 		method: 'get',
 		headers: {
 			cookie: request.headers.get('cookie') ?? '',

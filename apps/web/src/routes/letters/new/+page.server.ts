@@ -2,7 +2,7 @@ import { CreateLetterSchema, createLetter } from '$lib/server/letter';
 import { flatten, safeParse, string, uuid } from 'valibot';
 import type { Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
-import { getRandomRecipient, type Recipient } from '$lib/server/user';
+import { getRandomRecipient, getRecipient, type Recipient } from '$lib/server/user';
 
 export const actions = {
 	default: async ({ request }) => {
@@ -35,14 +35,12 @@ export async function load({ url, request }) {
 	const toUserId = safeParse(string([uuid()]), url.searchParams.get('toUserId'));
 
 	if (toUserId.success) {
-		const recipient = {
-			display_name: 'NOT YET IMPLEMENTED',
-			id: toUserId.output,
-			profile_image: ''
-		} satisfies Recipient;
-		return {
-			recipient
-		};
+		const recipient = await getRecipient({ request, userId: toUserId.output });
+		if (recipient) {
+			return {
+				recipient
+			};
+		}
 	}
 
 	const recipient = await getRandomRecipient({ request });

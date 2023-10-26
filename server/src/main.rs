@@ -37,9 +37,10 @@ async fn axum(#[shuttle_secrets::Secrets] secret_store: SecretStore) -> shuttle_
     let user_routes = Router::new()
         .route("/", post(handlers::user::update))
         .route(
-            "/random_recipient",
+            "/recipient/random",
             get(handlers::user::get_random_recipient),
         )
+        .route("/recipient/:id", get(handlers::user::get_recipient))
         .route("/letter", get(handlers::letter::get_all_letters))
         .route("/letter", post(handlers::letter::create_letter))
         .route("/letter/:id", get(handlers::letter::get_letter))

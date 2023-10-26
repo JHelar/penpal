@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Card, Heading, P } from 'flowbite-svelte';
+	import { Avatar, Button, Card, Heading, P } from 'flowbite-svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -7,13 +7,16 @@
 
 <div class="container mx-auto">
 	<Card class="max-w-xl grid grid-flow-row gap-y-4 mx-auto">
-		<Heading>{data.letter?.subject}</Heading>
-		<Heading tag="h2">{data.letter?.to_user_id}</Heading>
-		<time datetime={data.letter?.created_at.toISOString() ?? ''}
-			>{data.letter?.created_at.toLocaleString()}</time
+		<div class="flex row place-items-center gap-x-4">
+			<Avatar src={data.recipient.profile_image} rounded size="lg" />
+			<Heading tag="h2" class="text-lg">{data.recipient.display_name}</Heading>
+		</div>
+		<Heading>{data.letter.subject}</Heading>
+		<time datetime={data.letter.created_at.toISOString() ?? ''}
+			>{data.letter.created_at.toLocaleString()}</time
 		>
-		<P>{data.letter?.message}</P>
-		<Button class="justify-self-end" href={`/letters/new?toUserId=${data.letter?.to_user_id}`}
+		<P>{data.letter.message}</P>
+		<Button class="justify-self-end" href={`/letters/new?toUserId=${data.recipient.id}`}
 			>Reply</Button
 		>
 	</Card>

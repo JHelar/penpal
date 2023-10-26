@@ -50,6 +50,23 @@ pub struct Recipient {
     display_name: String,
     profile_image: String,
 }
+
+impl Recipient {
+    fn from_user(user: &User) -> Self {
+        Self {
+            display_name: user
+                .display_name
+                .clone()
+                .unwrap_or_else(|| "Unknown".to_string()),
+            id: user.id,
+            profile_image: user
+                .profile_image
+                .clone()
+                .unwrap_or_else(|| DEFAULT_AVATAR_PROFILE_IMAGE.to_string()),
+        }
+    }
+}
+
 pub async fn get_random_recipient(
     extract::Extension(current_user): extract::Extension<CurrentUser>,
     extract::State(pool): extract::State<SqlitePool>,
@@ -64,19 +81,25 @@ pub async fn get_random_recipient(
                 return Err(http::StatusCode::NO_CONTENT);
             };
 
-            let recipient = Recipient {
-                display_name: user
-                    .display_name
-                    .clone()
-                    .unwrap_or_else(|| "Unknown".to_string()),
-                id: user.id,
-                profile_image: user
-                    .profile_image
-                    .clone()
-                    .unwrap_or_else(|| DEFAULT_AVATAR_PROFILE_IMAGE.to_string()),
-            };
+            let recipient = Recipient::from_user(user);
             Ok((http::StatusCode::OK, axum::Json(recipient)))
         }
         Err(_) => Err(http::StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn get_recipient(
+    extract::Path(id): extract::Path<uuid::Uuid>,
+    extract::State(pool): extract::State<SqlitePool>,
+) -> Result<(http::StatusCode, axum::Json<Recipient>), http::StatusCode> {
+    let res = UserDao::get_by_id(id, &pool).await;
+
+    match res {
+        Ok(user) => {
+            let recipient = Recipient::from_user(&user);
+
+            Ok((http::StatusCode::OK, axum::Json(recipient)))
+        }
+        Err(_) => Err(http::StatusCode::NO_CONTENT),
     }
 }

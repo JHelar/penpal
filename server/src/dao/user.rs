@@ -92,6 +92,26 @@ impl UserDao {
         }
     }
 
+    pub async fn get_by_id(user_id: uuid::Uuid, pool: &SqlitePool) -> Result<User, sqlx::Error> {
+        let res = sqlx::query_as::<_, User>(
+            r#"
+            SELECT * FROM users
+            WHERE id = $1   
+            "#,
+        )
+        .bind(user_id)
+        .fetch_one(pool)
+        .await;
+
+        match res {
+            Ok(user) => Ok(user),
+            Err(error) => {
+                println!("UserDao::get_by_email: {:?}", error);
+                Err(error)
+            }
+        }
+    }
+
     pub async fn get_all_other_users(
         user_id: uuid::Uuid,
         pool: &SqlitePool,

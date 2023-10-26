@@ -52,7 +52,7 @@ impl LetterDao {
         let res = sqlx::query_as::<_, Letter>(
             r#"
             SELECT * FROM letters
-            WHERE id = $1 AND by_user_id = $2
+            WHERE id = $1 AND (by_user_id = $2 OR to_user_id = $2)
             "#,
         )
         .bind(id)
