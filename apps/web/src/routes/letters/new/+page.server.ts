@@ -2,28 +2,18 @@ import { CreateLetterSchema, createLetter } from '$lib/server/letter';
 import { flatten, safeParse, string, uuid } from 'valibot';
 import type { Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
-import type { SelectOptionType } from 'flowbite-svelte';
+import { getRandomRecipient, type Recipient } from '$lib/server/user';
 
 export const actions = {
 	default: async ({ request }) => {
-		const data = await request.formData();
-		const message = data.get('message');
-		const subject = data.get('subject');
-		const toUserId = data.get('to_user_id');
-
-		const letterParse = safeParse(CreateLetterSchema, {
-			message,
-			subject,
-			to_user_id: toUserId
-		});
+		const formData = Object.fromEntries((await request.formData()).entries());
+		const letterParse = safeParse(CreateLetterSchema, formData);
 
 		if (letterParse.success) {
 			const letter = await createLetter({ letter: letterParse.output, request });
 			if (!letter) {
 				return fail(400, {
-					subject,
-					message,
-					toUserId,
+					formData,
 					reason: {
 						general: 'Ooops, something went wrong!'
 					}
@@ -33,34 +23,34 @@ export const actions = {
 		}
 
 		return fail(400, {
-			subject,
-			message,
-			toUserId,
+			formData,
 			reason: flatten(letterParse.issues).nested
 		});
 	}
 } satisfies Actions;
 
 /** @type {import('./$types').PageLoad} */
-export async function load({ url }) {
+export async function load({ url, request }) {
 	/** @todo validate user id with server */
-	const toUserId = safeParse(string([uuid()]), url.searchParams.get('toUserId'))
-	const recipients: SelectOptionType<string>[] = []
+	const toUserId = safeParse(string([uuid()]), url.searchParams.get('toUserId'));
 
-	if(toUserId.success) {
-		recipients.push({
-			name: toUserId.output,
-			value: toUserId.output
-		})
-
+	if (toUserId.success) {
+		const recipient = {
+			display_name: 'NOT YET IMPLEMENTED',
+			id: toUserId.output,
+			profile_image: ''
+		} satisfies Recipient;
 		return {
-			toUserId: toUserId.output,
-			recipients
-		}
+			recipient
+		};
+	}
+
+	const recipient = await getRandomRecipient({ request });
+	if (!recipient) {
+		throw new Error('No recipient found...');
 	}
 
 	return {
-		toUserId: undefined,
-		recipients
-	}
+		recipient
+	};
 }

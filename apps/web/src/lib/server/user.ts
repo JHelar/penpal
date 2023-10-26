@@ -58,3 +58,32 @@ export async function updateUser({ request, payload }: UpdateUserArgs) {
 
 	return updateUserRes.ok;
 }
+
+const RecipientSchema = object({
+	id: string([uuid()]),
+	display_name: string(),
+	profile_image: string()
+});
+
+export type Recipient = Output<typeof RecipientSchema>;
+
+type GetRandomRecipientArgs = {
+	request: Request;
+};
+
+export async function getRandomRecipient({ request }: GetRandomRecipientArgs) {
+	const result = await fetch(`${VITE_SERVER_API_URL}/me/random_recipient`, {
+		method: 'get',
+		headers: {
+			cookie: request.headers.get('cookie') ?? '',
+			'content-type': 'application/json'
+		}
+	});
+
+	if (!result.ok) {
+		console.log(result.statusText);
+		return null;
+	}
+
+	return parse(RecipientSchema, await result.json());
+}

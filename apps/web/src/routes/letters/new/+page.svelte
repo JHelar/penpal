@@ -1,13 +1,10 @@
 <script lang="ts">
-	import { Button, Heading, Helper, Input, Label, Select, Textarea } from 'flowbite-svelte';
+	import { Avatar, Button, Heading, Helper, Input, Label, Select, Textarea } from 'flowbite-svelte';
 	import type { TextareaProps } from 'flowbite-svelte/dist/forms/Textarea.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	export let data: PageData;
 	export let form: ActionData;
-
-	let recipient = form?.toUserId ?? data.toUserId;
-	let lockRecipient = Boolean(data.toUserId);
 
 	const textareaprops: TextareaProps = {
 		id: 'message',
@@ -17,7 +14,7 @@
 		placeholder: 'Write a message...',
 		minlength: 250,
 		required: true,
-		value: form?.message ?? ''
+		value: form?.formData.message ?? ''
 	};
 </script>
 
@@ -28,12 +25,9 @@
 			<Helper color="red">{form.reason.general}</Helper>
 		{/if}
 		<Label class="block space-y-2">
-			<span>Recipient</span>
-			<Select required disabled={lockRecipient} bind:value={recipient} items={data.recipients} />
-			<input type="hidden" name="to_user_id" value={recipient} />
-			{#if form?.reason && 'to_user_id' in form.reason}
-				<Helper color="red">{form.reason.to_user_id}</Helper>
-			{/if}
+			<Avatar rounded src={data.recipient.profile_image} />
+			<span>{data.recipient.display_name}</span>
+			<input type="hidden" name="to_user_id" value={data.recipient.id} />
 		</Label>
 		<Label class="block space-y-2">
 			<span>Subject</span>
@@ -41,7 +35,7 @@
 				label="Subject"
 				id="subject"
 				name="subject"
-				value={form?.subject ?? ''}
+				value={form?.formData.subject ?? ''}
 				required
 				placeholder="Hello there..."
 			/>
