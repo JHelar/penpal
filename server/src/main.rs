@@ -1,10 +1,8 @@
 mod dao;
 mod handlers;
 mod middleware;
-
-use std::env;
-
 use axum::routing::{delete, get, post, put, Router};
+use shuttle_secrets::SecretStore;
 use sqlx::{
     migrate::Migrator,
     sqlite::{SqliteConnectOptions, SqlitePool},
@@ -14,8 +12,17 @@ use tower_http::cors::{Any, CorsLayer};
 static MIGRATOR: Migrator = sqlx::migrate!();
 
 #[shuttle_runtime::main]
-async fn axum() -> shuttle_axum::ShuttleAxum {
-    let database_url = env::var("DATABASE_URL").expect("Missing DATABASE_URL");
+async fn axum(#[shuttle_secrets::Secrets] secret_store: SecretStore) -> shuttle_axum::ShuttleAxum {
+    let database_url = if let Some(database_url) = secret_store.get("DATABASE_URL") {
+        database_url
+    } else {
+        return Err(anyhow::anyhow!("DATABASE_URL secret was not found").into());
+    };
+    if let Some(auth_secret) = secret_store.get("AUTH_SECRET") {
+        std::env::set_var("AUTH_SECRET", auth_secret);
+    } else {
+        return Err(anyhow::anyhow!("AUTH_SECRET secret was not found").into());
+    };
 
     let options = SqliteConnectOptions::new()
         .filename(database_url)

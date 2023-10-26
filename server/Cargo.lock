@@ -2404,6 +2404,7 @@ dependencies = [
 name = "server"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "axum",
  "biscuit",
  "chrono",
@@ -2415,6 +2416,7 @@ dependencies = [
  "sha2",
  "shuttle-axum",
  "shuttle-runtime",
+ "shuttle-secrets",
  "sqlx",
  "sqlx-cli",
  "tokio",
@@ -2563,6 +2565,17 @@ dependencies = [
  "tonic",
  "tower",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "shuttle-secrets"
+version = "0.30.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecb739d255a89e3af5a2d17a60f4934f221f760e63562a17f7dcbb76367c62f9"
+dependencies = [
+ "async-trait",
+ "serde",
+ "shuttle-service",
 ]
 
 [[package]]
