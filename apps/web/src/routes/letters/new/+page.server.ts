@@ -2,7 +2,7 @@ import { CreateLetterSchema, createLetter } from '$lib/server/letter';
 import { flatten, safeParse, string, uuid } from 'valibot';
 import type { Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
-import { getRandomRecipient, getRecipient, type Recipient } from '$lib/server/user';
+import { getRandomRecipient, getRecipient } from '$lib/server/user';
 
 export const actions = {
 	default: async ({ request }) => {

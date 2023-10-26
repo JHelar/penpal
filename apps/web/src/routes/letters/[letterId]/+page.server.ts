@@ -16,15 +16,16 @@ export async function load({ request, params, locals }) {
 
 	const recipientUserId =
 		letter.to_user_id === session?.user?.id ? letter.by_user_id : letter.to_user_id;
-	const recipient = await getRecipient({ request, userId: recipientUserId });
+	const fromUser = await getRecipient({ request, userId: letter.by_user_id });
 
-	if (!recipient) {
-		console.error('Get letter, no recipient found for id', recipientUserId);
+	if (!fromUser) {
+		console.error('Get letter, no fromUser found for id', letter.by_user_id);
 		throw redirect(307, '/letters');
 	}
 
 	return {
 		letter,
-		recipient
+		recipientUserId,
+		fromUser
 	};
 }
